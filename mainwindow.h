@@ -53,6 +53,8 @@ private slots:
 
     void on_Merge_button_clicked();
 
+    void on_Radix_Button_clicked();
+
 private:
     Ui::MainWindow *ui;
 };
