@@ -17,8 +17,8 @@ int dtime;
 bool repeat=false;
 int NUM;
 bool h=true;
-int elementwidth;
-int elementheight;
+double elementwidth;
+double elementheight;
 QGraphicsRectItem** rectangle;
 QGraphicsRectItem *placeHolder;
 QBrush blackBrush(Qt::black);
@@ -30,16 +30,15 @@ QPen blackPen(Qt::black);
 QPen redPen(Qt::red);
 
 QPen whitePen(Qt::white);
-
 int* temparr;
-int xcoordinate = -1250;
-int ycoordinate = 475;
+int xcoordinate = -390;
+int ycoordinate = 500;
   QGraphicsScene *scene;
 
   void Delay(int x)
   {
-  QTimer timer;//  THIS PART WAS TAKEN FROM CHATGPT
-                    timer.start(x);     //Start the timer with a 5-second interval
+  QTimer timer;
+                    timer.start(x);
 
 
                     QObject::connect(&timer, &QTimer::timeout, []()// Connect a lambda function to the timer's timeout signal
@@ -70,11 +69,22 @@ ui->CompCount->setText("0");
      NUM=x;
    rectangle= new QGraphicsRectItem*[NUM];
    temparr=new int[NUM];
-   elementwidth=10;
-if(NUM<50)
+   elementwidth=1200/NUM;
+   elementheight=530/NUM;
+/*if(NUM>100)
+
+   { elementwidth=5;
+    elementheight=4;}
+else if(NUM>50)
+   {
     elementheight=6;
+    elementwidth=6;
+}
 else
-    elementheight=3;
+{
+    elementheight=12;
+    elementwidth=12;
+}*/
   }
 
 
@@ -245,6 +255,8 @@ MainWindow::MainWindow(QWidget *parent)
     scene=new QGraphicsScene(this);
     ui->graphicsView->setScene(scene);
     scene->setBackgroundBrush(blackBrush);
+   ui-> graphicsView->setSceneRect(0,0,500,470);
+
 }
 
 MainWindow::~MainWindow()
@@ -301,15 +313,141 @@ ui->CompCount->setText(QString::number(compare));
 
 
 
+
+
+class BinaryST
+{
+public:
+    int info;   //stores the value
+    BinaryST *left; //pointer to left leaf
+    BinaryST *right;//pointer to right leaf
+    static int counter;//static counter to keep track of the comparisons made when inserting the values into the BST
+
+    BinaryST(); //Default constructor needed when creating the tree object
+    BinaryST(int);  //parameterized constructor
+    BinaryST* insertValue(BinaryST*, int);    //Insert function
+};
+BinaryST* root;
+
+
+BinaryST::BinaryST():info(0),left(nullptr),right(nullptr)   //Default constructor
+{
+
+}
+BinaryST::BinaryST(int x):info(x),left(nullptr),right(nullptr)   //parameterized constructer sets pointers to NULL and the info to value passed
+{
+}
+
+int BinaryST::counter = 0;      //initialising static variable
+
+BinaryST* BinaryST::insertValue(BinaryST* node, int x)    //Insert function
+{
+    if(!node)       //checks if node is not pointing to an object
+    {
+        return new BinaryST(x); //if true a new object is created and returned calling the paramterized constructor
+    }
+
+    counter++;  //increment comparison
+    if(x > node->info)  //if the value to be inserted is greater than the current root node than we navigate to the right and call the insert function again
+    {
+        node->right = insertValue(node->right, x);
+    }
+
+  else if(x <= node->info)  //otherwise it will navigate to the left, includes duplicates
+    {
+        node->left = insertValue(node ->left, x);
+    }
+
+        return node;
+}
+
+
+
+void inOrderTrav(BinaryST* node , int &i)
+{
+    if(node != nullptr)    //loops until the very last node
+    {
+        // set the color of the corresponding rectangle to red
+        rectangle[NUM-1]->setBrush(redBrush);
+        rectangle[NUM-1]->setRect(xcoordinate + (elementwidth * (NUM-i-1)), ycoordinate, elementwidth, -node->info * elementheight);
+        scene->update();
+        inOrderTrav(node->left, i);
+        rectangle[NUM-1]->setBrush(whiteBrush);
+        *(temparr +(i++)) = node->info;
+        rectangle[i-1]->setRect(xcoordinate + (elementwidth * (i-1)), ycoordinate, elementwidth, -node->info * elementheight);
+        scene->update();
+        Delay(dtime);
+        inOrderTrav(node->right, i);
+    }
+}
+
+
+BinaryST* insertValue(BinaryST* node, int x,QLabel* com)    //Insert function
+{
+    if(!node)       //checks if node is not pointing to an object
+    {
+        return new BinaryST(x); //if true a new object is created and returned calling the paramterized constructor
+    }
+    rectangle[NUM-1]->setBrush(redBrush);
+    scene->update();
+    Delay(dtime);
+    compare++;  //increment comparison
+    com->setText(QString::number(compare));
+    if(x > node->info)  //if the value to be inserted is greater than the current root node than we navigate to the right and call the insert function again
+    {
+        node->right = insertValue(node->right, x,com);
+    }
+
+  else if(x <= node->info)  //otherwise it will navigate to the left, includes duplicates
+    {
+        node->left = insertValue(node ->left, x,com);
+    }
+    rectangle[NUM-1]->setRect(xcoordinate + (elementwidth * (NUM-1)), ycoordinate, elementwidth, -node->info * elementheight);
+    rectangle[NUM-1]->setBrush(whiteBrush);
+    scene->update();
+    Delay(dtime);
+        return node;
+}
+
 void MainWindow::on_Tree_Button_clicked()
 {
+int compare=0;
+
+    root = nullptr;
+
+int i =0;
+
+ root = insertValue(root, *temparr,ui->CompCount);     //creates the root of the tree
+
+ for(int i = 1; i<NUM; i++)
+ {
+     root = insertValue(root, *(temparr+i),ui->CompCount);     //inserts the rest of the values in the array into the BST
+ }
+
+ compare = root->counter;        //sets the compare member in the sorting class to the counter in the BST class
+
+ inOrderTrav(root, i);       //In-order traversal to retrieve all the values in the BST in ascending order and putting it back into the array
+
+
+ for (int i = 0; i < NUM; i++)
+ {
+     // set the color of the sorted rectangles to green
+     rectangle[NUM-i-1]->setBrush(greenBrush);
+
+     // update the position of the sorted rectangles
+     rectangle[NUM-i-1]->setRect(xcoordinate + (elementwidth * (NUM-i-1)), ycoordinate, elementwidth, -temparr[NUM-i-1] * elementheight);
+
+     scene->update();
+     Delay(dtime);
+ }
+
 
 
 }
 
-
 void MainWindow::on_Comb_Button_clicked()
 {
+    compare=0;
     int gap = NUM;
         bool swapped = true;
 
@@ -364,11 +502,66 @@ void MainWindow::on_Comb_Button_clicked()
 
 void MainWindow::on_Counting_Button_clicked()
 {
+    compare=0;
+    // get the range of values in the array
+    int min = getMin();
+    int max = getMax();
+    int range = max - min + 1;
 
+    // initialize the count array with zeros
+    int* count = new int[range]();
+    for (int i = 0; i < range; i++) {
+        count[i] = 0;
+    }
 
+    // count the number of occurrences of each element in the array
+    for (int i = 0; i < NUM; i++) {
+        ++count[temparr[i] - min];
+    }
 
+    // calculate the cumulative sum of the counts
+    for (int i = 1; i < range; i++) {
+        count[i] += count[i - 1];
+    }
 
+    // create a temporary array to store the output
+    int* output = new int[NUM];
+    for (int i = NUM - 1; i >= 0; i--) {
+        output[--count[temparr[i] - min]] = temparr[i];
+        compare++;
+        ui->CompCount->setText(QString::number(compare));
+        Delay(dtime);
+    }
+
+    // update the dimensions and colors of the rectangles
+    for (int i = 0; i < NUM; i++) {
+        int index = count[temparr[i] - min];
+        rectangle[i]->setRect(xcoordinate+(elementwidth*i), ycoordinate, elementwidth, -temparr[i]*elementheight);
+        if (i == index) {
+           rectangle[i]->setBrush(greenBrush);
+
+        } else if (i < index) {
+             rectangle[i]->setBrush(redBrush);
+        } else {
+             rectangle[i]->setBrush(whiteBrush);
+        }
+        scene->update();
+        Delay(dtime);
+    }
+
+    // copy the output back to the original array
+    for (int i = 0; i < NUM; i++) {
+        temparr[i] = output[i];
+        rectangle[i]->setRect(xcoordinate+(elementwidth*i), ycoordinate, elementwidth, -temparr[i]*elementheight);
+        rectangle[i]->setBrush(greenBrush);
+        scene->update();
+        Delay(dtime);
+    }
+
+    delete[] output;
+    delete[] count;
 }
+
 
 
 void MainWindow::on_Bubble_Button_clicked()
@@ -525,7 +718,7 @@ void MainWindow::on_Insertion_Button_clicked()
 
              // update the position of the sorted rectangles
              rectangle[j + 1]->setRect(xcoordinate + (elementwidth * (j + 1)), ycoordinate, elementwidth, -temparr[j + 1] * elementheight);
-             rectangle[i]->setRect(xcoordinate + (elementwidth * i), ycoordinate, elementwidth, -temparr[i] * elementheight);
+             rectangle[i]->setRect(xcoordinate + (elementwidth * j), ycoordinate, elementwidth, -temparr[j] * elementheight);
 
              // set the brush color for the sorted rectangles to green
              rectangle[j + 1]->setBrush(greenBrush);
@@ -638,13 +831,13 @@ void MainWindow::on_Quick_Button_2_clicked()
             stack[++top] = high;
         }
     }
-  /*  for(int i=0;i<NUM;i++)
+    for(int i=0;i<NUM;i++)
     {
         rectangle[NUM-i-1]->setRect(xcoordinate + (elementwidth * (NUM-1-i)), ycoordinate, elementwidth, -temparr[NUM-i-1] * elementheight);
         rectangle[NUM-i-1]->setBrush(greenBrush);
         scene->update();
         Delay(dtime);
-    }*/
+    }
 
 }
 
@@ -686,14 +879,14 @@ void merge(int arr[], int l, int m, int r,QLabel* com)
         {
             rectangle[i]->setBrush(redBrush);
             scene->update();
-            Delay(5);
+           Delay(dtime);
 
         }
         if(j<n2)
         {
             rectangle[m+1+j]->setBrush(redBrush);
             scene->update();
-            Delay(5);
+            Delay(dtime);
 
 
         }
@@ -720,7 +913,7 @@ void merge(int arr[], int l, int m, int r,QLabel* com)
         rectangle[k]->setRect(xcoordinate + (elementwidth * k), ycoordinate, elementwidth, -temparr[k] * elementheight);
         rectangle[k]->setBrush(greenBrush);
         scene->update();
-        Delay(5);
+        Delay(dtime);
 
         i++;
         k++;
@@ -731,7 +924,7 @@ void merge(int arr[], int l, int m, int r,QLabel* com)
         rectangle[k]->setRect(xcoordinate + (elementwidth * k), ycoordinate, elementwidth, -temparr[k] * elementheight);
         rectangle[k]->setBrush(greenBrush);
         scene->update();
-        Delay(5);
+        Delay(dtime);
         j++;
         k++;
     }
@@ -740,7 +933,7 @@ void merge(int arr[], int l, int m, int r,QLabel* com)
     {
         rectangle[p]->setBrush(greenBrush);
         scene->update();
-        Delay(5);
+     //   Delay(dtime);
     }
 }
 
@@ -763,4 +956,57 @@ compare=0;
  mergeSort(temparr, 0, NUM - 1,ui->CompCount);
 
 }
+void countSort(int x)
+{
+    int output[NUM];
+    int i;
+    int count[10] = {0};
+
+    for (i = 0; i < NUM; i++) {
+        (*(count + (*(temparr + i) / x) % 10))++;
+       // rectangle[i]->setBrush(redBrush);
+        scene->update();// set the color to red when accessed
+    }
+
+    for (i = 1; i < 10; i++)
+        *(count + i) += *(count + (i - 1));
+
+    for (i = NUM - 1; i >= 0; i--) {
+        rectangle[i]->setBrush(redBrush);
+        scene->update();// set the color to red when accessed
+        *(output + *(count + (*(temparr + i) / x) % 10) - 1) = *(temparr + i);
+        (*(count + (*(temparr + i) / x) % 10))--;
+        scene->update();// set the color to red when accessed
+    }
+
+    for (i = 0; i < NUM; i++) {
+        *(temparr+i) = *(output+i);
+        rectangle[i]->setBrush(whiteBrush);  // set the color to white when no longer accessed
+        rectangle[i]->setRect(xcoordinate+(elementwidth*i), ycoordinate, elementwidth, -temparr[i]*elementheight);
+        scene->update();
+        Delay(dtime);
+    }
+}
+
+void MainWindow::on_Radix_Button_clicked()
+{
+    int max = getMax();
+
+    // set the initial color of all the rectangles to white
+    for (int i = 0; i < NUM; i++) {
+        rectangle[i]->setBrush(whiteBrush);
+        scene->update();
+    }
+
+    for (int i = 1; (max / i) > 0; i *= 10)
+        countSort(i);
+
+    // set the final color of all the rectangles to green
+    for (int i = 0; i < NUM; i++) {
+        rectangle[i]->setBrush(greenBrush);
+        scene->update();
+        Delay(dtime);
+    }
+}
+
 
